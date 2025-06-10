@@ -18,6 +18,7 @@ var (
     domainSet  = make(map[string]struct{})
     domainMux  sync.Mutex
     outputMux  sync.Mutex
+    cleanWildcards bool // Новый флаг для очистки *. префикса
 )
 
 // extractDomainsFromCSP парсит CSP и извлекает домены из всех директив
@@ -38,6 +39,7 @@ func extractDomainsFromCSP(csp string) []string {
         cleaned = strings.TrimPrefix(cleaned, "http://")
 
         // Удаляем ведущие '*.' если есть
+        original := cleaned
         cleaned = strings.TrimPrefix(cleaned, "*.")
 
         // Удаляем конечный символ ';' если есть
@@ -61,7 +63,11 @@ func extractDomainsFromCSP(csp string) []string {
         domainMux.Lock()
         if _, exists := domainSet[cleaned]; !exists {
             domainSet[cleaned] = struct{}{}
-            result = append(result, cleaned)
+            if cleanWildcards {
+                result = append(result, cleaned)
+            } else {
+                result = append(result, original)
+            }
         }
         domainMux.Unlock()
     }
@@ -113,6 +119,7 @@ func main() {
     outPath := flag.String("o", "", "Output file to save found domains")
     concurrency := flag.Int("c", 5, "Number of concurrent workers")
     rateLimit := flag.Float64("r", 0.5, "Rate limit in seconds between requests per worker")
+    flag.BoolVar(&cleanWildcards, "clean", false, "Remove *. prefix from domains") // Новый флаг
 
     flag.Parse()
 
@@ -120,6 +127,7 @@ func main() {
         fmt.Println("Usage:")
         fmt.Println("  -f urls.txt   (for list of URLs)")
         fmt.Println("  -u https://example.com   (for single URL)")
+        fmt.Println("  -clean        (remove *. prefix from domains)")
         os.Exit(1)
     }
 
