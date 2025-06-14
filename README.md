@@ -44,7 +44,7 @@ Extract domains from a list of URLs and remove *. prefixes from the output:
 ```
 
 #### CSP takeover
-```
+```bash
 ./cspgrabber -f alive_http_services.txt -c 20 -r 0.1 -clean -o csp_domains.txt && \
 nuclei -l csp_domains.txt -profile subdomain-takeovers -nh -o csp_takeovers.txt
 ```
